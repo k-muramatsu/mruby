@@ -34,6 +34,10 @@ double round(double x) {
 
 /** Time class configuration */
 
+#ifdef MRB_TIME_T_UINT
+# define time_t uint32_t
+#endif
+
 /* gettimeofday(2) */
 /* C99 does not have gettimeofday that is required to retrieve microseconds */
 /* uncomment following macro on platforms without gettimeofday(2) */
@@ -240,13 +244,21 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 
   mrb_check_num_exact(mrb, (mrb_float)sec);
   mrb_check_num_exact(mrb, (mrb_float)usec);
-
+#ifndef MRB_TIME_T_UINT
   if (sizeof(time_t) == 4 && (sec > (double)INT32_MAX || (double)INT32_MIN > sec)) {
     goto out_of_range;
   }
   if (sizeof(time_t) == 8 && (sec > (double)INT64_MAX || (double)INT64_MIN > sec)) {
     goto out_of_range;
   }
+#else
+  if (sizeof(time_t) == 4 && (sec > (double)UINT32_MAX || (double)0 > sec)) {
+    goto out_of_range;
+  }
+  if (sizeof(time_t) == 8 && (sec > (double)UINT64_MAX || (double)0 > sec)) {
+    goto out_of_range;
+  }
+#endif
   tsec  = (time_t)sec;
   if ((sec > 0 && tsec < 0) || (sec < 0 && (double)tsec > sec)) {
   out_of_range:
@@ -370,9 +382,6 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   }
   else {
     nowsecs = mktime(&nowtime);
-  }
-  if (nowsecs == (time_t)-1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
   return time_alloc(mrb, (double)nowsecs, (double)ausec, timezone);
@@ -764,9 +773,11 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = time_get_ptr(mrb, self);
+#ifndef MRB_TIME_T_UINT
   if (tm->sec > MRB_INT_MAX || tm->sec < MRB_INT_MIN) {
     return mrb_float_value(mrb, (mrb_float)tm->sec);
   }
+#endif
   return mrb_fixnum_value((mrb_int)tm->sec);
 }
 

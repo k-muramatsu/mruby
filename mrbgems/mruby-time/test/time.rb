@@ -227,10 +227,50 @@ assert('2000 times 500us make a second') do
   t.usec == 0
 end
 
-assert('Time.new with Dec 31 23:59:59 1969 raise ArgumentError') do
-  assert_raise(ArgumentError) {Time.new(1969, 12, 31, 23, 59, 59)}
+assert('Time.at lower than 1970 (for time_t is uint)') do
+  assert_raise(ArgumentError){ Time.at(-1) }
 end
 
-assert('Time.gm with Dec 31 23:59:59 1969 raise ArgumentError') do
-  assert_raise(ArgumentError) {Time.gm(1969, 12, 31, 23, 59, 59)}
+assert('Time.at 2106/2/7 6:28:15 (for time_t is uint32_t)') do
+  t = Time.at(4294967295)
+  assert_equal t.year, 2106
+  assert_equal t.mon, 2
+  assert_equal t.mday, 7
+  assert_equal t.hour, 6
+  assert_equal t.min, 28
+  assert_equal t.sec, 15
+end
+
+assert('Time.gm 2106/2/7 6:28:15 (for time_t is uint32_t)') do
+  t = Time.new(2106, 2, 7, 6, 28, 15)
+  assert_equal t.year, 2106
+  assert_equal t.mon, 2
+  assert_equal t.mday, 7
+  assert_equal t.hour, 6
+  assert_equal t.min, 28
+  assert_equal t.sec, 15
+end
+
+assert('Time.new 2106/2/7 6:28:15 (for time_t is uint32_t)') do
+  t = Time.gm(2106, 2, 7, 6, 28, 15)
+  assert_equal t.year, 2106
+  assert_equal t.mon, 2
+  assert_equal t.mday, 7
+  assert_equal t.hour, 6
+  assert_equal t.min, 28
+  assert_equal t.sec, 15
+end
+
+assert('Time.at higher than 2106/2/7 6:28:15 (for time_t is uint32_t)') do
+  assert_raise(ArgumentError){ Time.at(4294967296) }
+end
+
+assert('Time.new higher than 2106/2/7 6:28:15 (faor time_t is uint32_t)') do
+  t = Time.new(2106, 2, 7, 6, 28, 16)
+  assert_equal t.year, 1970
+  assert_equal t.mon, 1
+  assert_equal t.mday, 1
+  assert_equal t.hour, 0
+  assert_equal t.min, 0
+  assert_equal t.sec, 0
 end
